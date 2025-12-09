@@ -72,6 +72,9 @@ class Bird(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = xy
         self.speed = 10
+#追加機能4-1
+        self.state = "normal"  # 状態（normal or hyper）
+        self.hyper_life = -1   # 発動時間
 
     def change_img(self, num: int, screen: pg.Surface):
         """
@@ -100,6 +103,15 @@ class Bird(pg.sprite.Sprite):
             self.dire = tuple(sum_mv)
             self.image = self.imgs[self.dire]
         screen.blit(self.image, self.rect)
+#追加機能4-2
+        if self.state == "hyper":
+            self.image = pg.transform.laplacian(self.image)
+            self.hyper_life -= 1
+            if self.hyper_life < 0:
+                self.state = "normal"
+                
+        screen.blit(self.image, self.rect)
+        
 
 
 class Bomb(pg.sprite.Sprite):
@@ -241,6 +253,8 @@ class Score:
         self.image = self.font.render(f"Score: {self.value}", 0, self.color)
         screen.blit(self.image, self.rect)
 
+    
+
 
 def main():
     pg.display.set_caption("真！こうかとん無双")
@@ -263,9 +277,16 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+#追加機能4-3
+            if event.type == pg.KEYDOWN and event.key == pg.K_RSHIFT:
+                if score.value >=  200:
+                    bird.state = "hyper"  # 無敵状態へ
+                    bird.hyper_life = 500  # 発動時間設定
+                    score.value -= 200  # スコア消費
+
         screen.blit(bg_img, [0, 0])
 
-        if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
+        if tmr%200 == 0:  # 200フレームsに1回，敵機を出現させる
             emys.add(Enemy())
 
         for emy in emys:
@@ -283,6 +304,12 @@ def main():
             score.value += 1  # 1点アップ
 
         for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
+#追加機能4-4　無敵時に爆弾に接触した場合
+            if bird.state == "hyper":
+                exps.add(Explosion(bomb, 50))
+                score.value += 1
+                continue
+
             bird.change_img(8, screen)  # こうかとん悲しみエフェクト
             score.update(screen)
             pg.display.update()
